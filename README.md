@@ -50,6 +50,6 @@ pnpm preview     # 本地预览构建产物
 ## 设计决策（ADR 摘要）
 
 - 本地优先：个人工具、数据主权、离线可用；代价是换设备需手动备份
-- Hash 路由：静态托管免服务端重写，配合 PWA 离线可用
+- History 路由：URL 更美观；部署时需配置 SPA fallback（见 `vercel.json` / `public/_redirects`），PWA 离线导航依赖 `navigateFallback`
 - SM-2 纯函数：调度逻辑可单测、可演进（详见 `src/utils/sm2.ts`）
 - AI 代理走云函数：API key 只存在于服务端环境变量，前端不暴露

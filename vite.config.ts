@@ -22,6 +22,10 @@ export default defineConfig({
         lang: 'zh-CN',
         icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml' }],
       },
+      workbox: {
+        // History 模式下离线导航也需要回退到应用入口
+        navigateFallback: 'index.html',
+      },
     }),
   ],
   resolve: {
