@@ -1,37 +1,71 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSpeech } from '@/composables/useSpeech'
-import { sampleWords } from '@/data/words'
+import { useLearningStore } from '@/stores/learning'
 import { useSettingsStore } from '@/stores/settings'
 
+const router = useRouter()
 const settings = useSettingsStore()
+const learning = useLearningStore()
 const { speak } = useSpeech()
 
-const word = computed(() => sampleWords[0])
+const cur = computed(() => learning.current)
 const showMeaning = ref(false)
 
+async function start() {
+  await learning.start()
+  showMeaning.value = false
+}
+
+function reveal() {
+  showMeaning.value = !showMeaning.value
+}
+
+async function markLearned() {
+  await learning.markLearned()
+  showMeaning.value = false
+}
+
+watch(cur, (word) => {
+  if (word && settings.autoSpeak) speak(word.word)
+})
 function speakWord() {
-  if (word.value) speak(word.value.word)
+  if (cur.value) speak(cur.value.word)
 }
 </script>
 
 <template>
   <div class="page learn-page">
     <h2>今日学习</h2>
-    <p class="hint">每日新词 {{ settings.dailyNewWords }} 个 · 自动发音 {{ settings.autoSpeak ? '开' : '关' }}</p>
+    <p class="hint">每日新词 {{ settings.dailyNewWords }} 个 · 已学 {{ learning.done }}</p>
 
-    <van-empty v-if="!word" description="词库为空，先去词库添加单词" />
-    <div v-else class="card" @click="showMeaning = !showMeaning">
-      <div class="word">{{ word.word }}</div>
-      <div class="phonetic">{{ word.phonetic }}</div>
-      <div v-if="showMeaning" class="meaning">
-        <div>{{ word.pos }} {{ word.meaning }}</div>
-        <p class="example">{{ word.example }}</p>
-        <p class="example-zh">{{ word.exampleZh }}</p>
+    <van-empty v-if="!learning.inSession && !learning.finished" description="今天还没开始学习">
+      <van-button type="primary" @click="start">开始学习</van-button>
+    </van-empty>
+
+    <template v-else-if="learning.inSession">
+      <div v-if="cur" class="card" @click="reveal">
+        <div class="word">{{ cur.word }}</div>
+        <div class="phonetic">{{ cur.phonetic }}</div>
+        <div v-if="showMeaning" class="meaning">
+          <div>{{ cur.pos }} {{ cur.meaning }}</div>
+          <p class="example">{{ cur.example }}</p>
+          <p class="example-zh">{{ cur.exampleZh }}</p>
+        </div>
       </div>
-      <van-button size="small" type="primary" class="speak-btn" @click.stop="speakWord">发音</van-button>
-    </div>
-    <p class="hint tip">点击卡片查看释义 · 学习与复习调度将在 Sprint 2 接入</p>
+      <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义' }}</p>
+      <div class="actions">
+        <van-button plain size="small" @click="speakWord">再听一遍</van-button>
+        <van-button type="primary" :disabled="!showMeaning" @click="markLearned">
+          记住了（{{ learning.done }}/{{ learning.queue.length }}）
+        </van-button>
+      </div>
+    </template>
+
+    <van-empty v-else description="今日新词已学完">
+      <van-button type="primary" @click="router.push('/review')">去复习</van-button>
+    </van-empty>
   </div>
 </template>
 
@@ -66,7 +100,10 @@ function speakWord() {
   color: #969799;
   font-size: 13px;
 }
-.speak-btn {
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
   margin-top: 20px;
 }
 .tip {
