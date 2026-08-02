@@ -27,6 +27,8 @@ export interface ReviewCard {
 }
 
 export interface ReviewLog {
+  /** 自增主键，入库后生成 */
+  id?: number
   wordId: string
   rating: ReviewRating
   reviewedAt: number
