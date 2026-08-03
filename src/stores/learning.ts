@@ -19,7 +19,9 @@ export const useLearningStore = defineStore('learning', () => {
 
   async function start() {
     const all = await wordRepo.getAll()
-    queue.value = [...all].sort(() => Math.random() - 0.5).slice(0, settings.dailyNewWords)
+    const learnedIds = new Set((await cardRepo.getAll()).map((card) => card.wordId))
+    const fresh = all.filter((word) => !learnedIds.has(word.id))
+    queue.value = fresh.sort(() => Math.random() - 0.5).slice(0, settings.dailyNewWords)
     index.value = 0
     done.value = 0
     finished.value = queue.value.length === 0

@@ -21,10 +21,19 @@ export const useReviewStore = defineStore('review', () => {
     const due = await cardRepo.getDue()
     const all = await wordRepo.getAll()
     const map = new Map(all.map((w) => [w.id, w]))
+    // 清理词条已不存在的孤儿卡，避免统计与展示失真
+    const orphaned = due.filter((card) => !map.has(card.wordId))
+    if (orphaned.length > 0) await cardRepo.removeByWordIds(orphaned.map((card) => card.wordId))
     queue.value = due.filter((card) => map.has(card.wordId))
     words.value = map
     index.value = 0
     finished.value = queue.value.length === 0
+  }
+
+  /** 跳过当前卡片（词条缺失等异常场景） */
+  function skip() {
+    if (index.value + 1 >= queue.value.length) finished.value = true
+    else index.value++
   }
 
   async function rate(rating: ReviewRating) {
@@ -42,5 +51,5 @@ export const useReviewStore = defineStore('review', () => {
     else index.value++
   }
 
-  return { queue, total, index, finished, current, currentWord, inSession, load, rate }
+  return { queue, total, index, finished, current, currentWord, inSession, load, rate, skip }
 })

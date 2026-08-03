@@ -37,4 +37,17 @@ describe('learning store', () => {
     expect(store.finished).toBe(true)
     expect(store.done).toBe(store.queue.length)
   })
+
+  it('已学过的词不再进入今日新词队列', async () => {
+    const store = useLearningStore()
+    await store.start()
+    const first = store.current
+    if (!first) throw new Error('队列为空，无法测试')
+    const learnedId = first.id
+
+    await store.markLearned()
+    await store.start()
+
+    expect(store.queue.some((w) => w.id === learnedId)).toBe(false)
+  })
 })

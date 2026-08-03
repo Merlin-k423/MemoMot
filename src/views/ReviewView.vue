@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSpeech } from '@/composables/useSpeech'
 import { useReviewStore } from '@/stores/review'
 import type { ReviewRating } from '@/types'
 
+const router = useRouter()
 const review = useReviewStore()
 const { speak } = useSpeech()
 const loading = ref(true)
@@ -49,9 +51,10 @@ onMounted(init)
 
     <van-empty
       v-else-if="!review.inSession"
-      :description="review.finished ? '本轮复习完成' : '今日待复习 0 个'"
+      :description="review.finished ? '本轮复习完成' : '今天没有到期待复习的词'"
     >
       <van-button v-if="review.finished" size="small" type="primary" @click="init">再查一次</van-button>
+      <van-button v-else size="small" type="primary" @click="router.push('/learn')">去学习新词</van-button>
     </van-empty>
 
     <template v-else>
@@ -64,6 +67,11 @@ onMounted(init)
           <p class="example">{{ cur.example }}</p>
           <p class="example-zh">{{ cur.exampleZh }}</p>
         </div>
+      </div>
+      <div v-else class="card card-missing">
+        <div class="word">词条数据缺失</div>
+        <p class="hint">该词条可能已被删除，跳过即可</p>
+        <van-button size="small" plain type="primary" @click="review.skip()">跳过</van-button>
       </div>
       <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义后评分' }}</p>
       <div class="ratings">
@@ -86,6 +94,7 @@ onMounted(init)
 <style scoped>
 .card {
   margin-top: 16px;
+  min-height: 220px;
   padding: 36px 20px;
   border-radius: 12px;
   background: #fff;
@@ -122,9 +131,19 @@ onMounted(init)
   text-align: center;
 }
 .ratings {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 20px;
+}
+.ratings .van-button {
+  padding: 0 4px;
+}
+.card-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 </style>

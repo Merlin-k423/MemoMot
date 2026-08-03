@@ -10,11 +10,20 @@ export const cardRepo = {
     return db.reviewCards.get(wordId)
   },
 
+  async getAll(): Promise<ReviewCard[]> {
+    return db.reviewCards.toArray()
+  },
+
   async upsert(card: ReviewCard): Promise<void> {
     await db.reviewCards.put(card)
   },
 
   async bulkUpsert(cards: ReviewCard[]): Promise<void> {
     await db.reviewCards.bulkPut(cards)
+  },
+
+  async removeByWordIds(wordIds: string[]): Promise<void> {
+    if (wordIds.length === 0) return
+    await db.reviewCards.bulkDelete(wordIds)
   },
 }

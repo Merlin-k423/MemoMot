@@ -12,6 +12,9 @@ const { speak } = useSpeech()
 
 const cur = computed(() => learning.current)
 const showMeaning = ref(false)
+const progress = computed(() =>
+  learning.queue.length > 0 ? Math.round((learning.done / learning.queue.length) * 100) : 0,
+)
 
 async function start() {
   await learning.start()
@@ -45,6 +48,7 @@ function speakWord() {
     </van-empty>
 
     <template v-else-if="learning.inSession">
+      <van-progress :percentage="progress" stroke-width="6" class="progress" />
       <div v-if="cur" class="card" @click="reveal">
         <div class="word">{{ cur.word }}</div>
         <div class="phonetic">{{ cur.phonetic }}</div>
@@ -56,8 +60,8 @@ function speakWord() {
       </div>
       <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义' }}</p>
       <div class="actions">
-        <van-button plain size="small" @click="speakWord">再听一遍</van-button>
-        <van-button type="primary" :disabled="!showMeaning" @click="markLearned">
+        <van-button plain block @click="speakWord">再听一遍</van-button>
+        <van-button type="primary" block :disabled="!showMeaning" @click="markLearned">
           记住了（{{ learning.done }}/{{ learning.queue.length }}）
         </van-button>
       </div>
@@ -77,6 +81,9 @@ function speakWord() {
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   text-align: center;
+}
+.progress {
+  margin-top: 12px;
 }
 .word {
   font-size: 34px;
@@ -102,7 +109,7 @@ function speakWord() {
 }
 .actions {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   gap: 12px;
   margin-top: 20px;
 }
