@@ -43,9 +43,11 @@ pnpm preview     # 本地预览构建产物
 
 ## 功能规划
 
-- P0：词库（内置词表 + 自定义） / 卡片学习 + TTS / SM-2 复习调度 / 统计（打卡热力图）
-- P1：AI 流式释义与例句补全（SSE）✅ / 虚拟滚动 / 离线 PWA
-- P2：听写模式（平台限制说明）、选择题模式、数据导出备份
+- P0：词库（内置 100 词 + 自定义 + CSV 导入导出） / 卡片学习 + TTS / SM-2 复习调度 / 统计（打卡热力图）
+- P1：AI 流式释义与例句补全（SSE）✅ / 离线 PWA
+- P2：听写模式（平台限制说明）、选择题模式 / 数据导出备份 ✅
+
+CSV 格式（首行表头）：`word,phonetic,pos,meaning,example,exampleZh,level,tags`
 
 ## AI 代理接口契约
 
@@ -77,6 +79,7 @@ pnpm dev            # 词库页点「AI」按钮即可看到流式补全（已�
 ## 设计决策（ADR 摘要）
 
 - 本地优先：个人工具、数据主权、离线可用；代价是换设备需手动备份
+- 数据备份：导出/导入 JSON（含版本校验与事务写入，见 `src/utils/backup.ts`、`src/db/backup.ts`），用于换设备迁移
 - History 路由：URL 更美观；部署时需配置 SPA fallback（见 `vercel.json` / `public/_redirects`），PWA 离线导航依赖 `navigateFallback`
 - SM-2 纯函数：调度逻辑可单测、可演进（详见 `src/utils/sm2.ts`）
 - AI 代理走云函数：API key 只存在于服务端环境变量，前端不暴露

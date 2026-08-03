@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { showToast } from 'vant'
+import { exportBackup, importBackup } from '@/db/backup'
 import { logRepo } from '@/db/logs'
 import { wordRepo } from '@/db/words'
+import { BackupError, parseBackup } from '@/utils/backup'
 import { DAY_MS, formatDate, startOfDay } from '@/utils/date'
 import { buildHeatmap, computeStreak, type HeatmapCell } from '@/utils/stats'
 
@@ -11,6 +14,7 @@ const wordCount = ref(0)
 const todayCount = ref(0)
 const streak = ref(0)
 const heatmap = ref<HeatmapCell[]>([])
+const fileInput = ref<HTMLInputElement>()
 
 const DAYS = 84 // 12 周
 
@@ -43,6 +47,39 @@ async function load() {
     todayCount.value = counts.get(formatDate(startOfDay(now))) ?? 0
   } finally {
     loading.value = false
+  }
+}
+
+function downloadFile(name: string, text: string) {
+  const blob = new Blob([text], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = name
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+async function handleExport() {
+  const backup = await exportBackup()
+  const name = `memomot-backup-${new Date().toISOString().slice(0, 10)}.json`
+  downloadFile(name, JSON.stringify(backup, null, 2))
+  showToast('备份已导出')
+}
+
+async function handleImport(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  try {
+    const backup = parseBackup(await file.text())
+    await importBackup(backup)
+    showToast('备份导入成功')
+    await load()
+  } catch (e) {
+    showToast(e instanceof BackupError ? e.message : '导入失败')
+  } finally {
+    input.value = ''
   }
 }
 
@@ -96,6 +133,22 @@ onMounted(load)
           <span class="cell level-3" />
           <span class="cell level-4" />
           <span>多</span>
+        </div>
+      </div>
+
+      <div class="backup-section">
+        <h3>数据备份</h3>
+        <p class="hint">导出 JSON 备份，换设备或清缓存后可恢复</p>
+        <div class="backup-actions">
+          <van-button size="small" type="primary" plain icon="down" @click="handleExport">导出备份</van-button>
+          <van-button size="small" plain icon="up" @click="fileInput?.click()">导入备份</van-button>
+          <input
+            ref="fileInput"
+            type="file"
+            accept="application/json,.json"
+            class="hidden-input"
+            @change="handleImport"
+          />
         </div>
       </div>
     </template>
@@ -175,5 +228,23 @@ onMounted(load)
   margin-top: 8px;
   color: #969799;
   font-size: 12px;
+}
+.backup-section {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+}
+.backup-section h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.backup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.hidden-input {
+  display: none;
 }
 </style>
