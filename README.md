@@ -10,7 +10,6 @@
 - 状态：Pinia + vue-router
 - 数据：Dexie（IndexedDB）
 - 离线：vite-plugin-pwa
-- 图表：ECharts（按需引入，BaseChart 封装）
 - 测试：Vitest + Vue Test Utils
 - 工程：ESLint + Prettier
 
@@ -19,7 +18,7 @@
 ```text
 src/
   api/           AI 代理接口契约（腾讯云函数，SSE）
-  components/    通用组件（BaseChart 等）
+  components/    通用组件
   composables/   可复用逻辑（如 useSpeech）
   data/          内置词表
   router/        路由（hash 模式，适配静态托管）
@@ -54,4 +53,3 @@ pnpm preview     # 本地预览构建产物
 - History 路由：URL 更美观；部署时需配置 SPA fallback（见 `vercel.json` / `public/_redirects`），PWA 离线导航依赖 `navigateFallback`
 - SM-2 纯函数：调度逻辑可单测、可演进（详见 `src/utils/sm2.ts`）
 - AI 代理走云函数：API key 只存在于服务端环境变量，前端不暴露
-- ECharts 按需引入：只注册 calendar/heatmap 等模块，避免全量引入 1MB+；统一由 BaseChart 组件管理生命周期

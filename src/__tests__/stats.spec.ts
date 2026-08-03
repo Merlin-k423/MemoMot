@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DAY_MS, formatDate, startOfDay } from '@/utils/date'
-import { buildHeatmap, computeStreak, toCalendarData } from '@/utils/stats'
+import { buildHeatmap, computeStreak } from '@/utils/stats'
 
 const NOW = new Date('2026-08-03T12:00:00+08:00').getTime()
 
@@ -35,18 +35,5 @@ describe('computeStreak', () => {
 
   it('没有任何记录时连续天数为 0', () => {
     expect(computeStreak(new Map(), NOW)).toBe(0)
-  })
-})
-
-describe('toCalendarData', () => {
-  it('转换为 ECharts [日期, 次数] 元组数组', () => {
-    const cells = [
-      { date: '2026-08-02', count: 0 },
-      { date: '2026-08-03', count: 5 },
-    ]
-    expect(toCalendarData(cells)).toEqual([
-      ['2026-08-02', 0],
-      ['2026-08-03', 5],
-    ])
   })
 })
