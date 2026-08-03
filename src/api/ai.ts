@@ -63,8 +63,3 @@ export async function* explainWordStream(
     }
   }
 }
-
-export async function fetchTtsUrl(_text: string): Promise<string> {
-  // TODO：对接 TTS 生成接口（浏览器 speechSynthesis 不可用时的兜底）
-  throw new Error('TTS endpoint 尚未实现')
-}
