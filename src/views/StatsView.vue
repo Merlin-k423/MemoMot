@@ -1,34 +1,54 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import type { EChartsCoreOption } from 'echarts/core'
+import { CalendarComponent, TooltipComponent, VisualMapComponent } from 'echarts/components'
+import { HeatmapChart } from 'echarts/charts'
+import { CanvasRenderer } from 'echarts/renderers'
+import { use } from 'echarts/core'
+import BaseChart from '@/components/BaseChart.vue'
 import { logRepo } from '@/db/logs'
 import { wordRepo } from '@/db/words'
 import { DAY_MS, formatDate, startOfDay } from '@/utils/date'
-import { buildHeatmap, computeStreak, type HeatmapCell } from '@/utils/stats'
+import { buildHeatmap, computeStreak, toCalendarData } from '@/utils/stats'
+
+use([CalendarComponent, TooltipComponent, VisualMapComponent, HeatmapChart, CanvasRenderer])
 
 const loading = ref(true)
 const totalLogs = ref(0)
 const wordCount = ref(0)
 const todayCount = ref(0)
 const streak = ref(0)
-const heatmap = ref<HeatmapCell[]>([])
+const calendarData = ref<[string, number][]>([])
 
 const DAYS = 84 // 12 周
 
-const weeks = computed(() => {
-  const result: HeatmapCell[][] = []
-  for (let i = 0; i < heatmap.value.length; i += 7) {
-    result.push(heatmap.value.slice(i, i + 7))
-  }
-  return result
-})
-
-function levelClass(count: number): string {
-  if (count <= 0) return 'level-0'
-  if (count === 1) return 'level-1'
-  if (count <= 4) return 'level-2'
-  if (count <= 9) return 'level-3'
-  return 'level-4'
-}
+const chartOption = computed<EChartsCoreOption>(() => ({
+  tooltip: {},
+  calendar: {
+    range: DAYS,
+    cellSize: ['auto', 14],
+    dayLabel: { show: false },
+    monthLabel: { nameMap: 'cn' },
+    itemStyle: { borderWidth: 2, borderColor: '#f7f8fa', borderRadius: 3 },
+    splitLine: { show: false },
+  },
+  visualMap: {
+    min: 0,
+    max: 10,
+    calculable: true,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: 0,
+    inRange: { color: ['#ebedf0', '#c6e0ff', '#91caff', '#4da3ff', '#1989fa'] },
+  },
+  series: [
+    {
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: calendarData.value,
+    },
+  ],
+}))
 
 async function load() {
   loading.value = true
@@ -36,7 +56,7 @@ async function load() {
     const now = Date.now()
     const from = startOfDay(now) - (DAYS - 1) * DAY_MS
     const counts = await logRepo.countsPerDay(from, now)
-    heatmap.value = buildHeatmap(counts, DAYS, now)
+    calendarData.value = toCalendarData(buildHeatmap(counts, DAYS, now))
     streak.value = computeStreak(counts, now)
     totalLogs.value = await logRepo.total()
     wordCount.value = await wordRepo.count()
@@ -77,26 +97,7 @@ onMounted(load)
       <van-empty v-if="totalLogs === 0" description="还没有学习记录，先去学习吧" />
       <div v-else class="heatmap-wrap">
         <h3>近 12 周打卡</h3>
-        <div class="heatmap">
-          <div v-for="(week, wi) in weeks" :key="wi" class="week">
-            <div
-              v-for="cell in week"
-              :key="cell.date"
-              class="cell"
-              :class="levelClass(cell.count)"
-              :title="`${cell.date} · ${cell.count} 次`"
-            />
-          </div>
-        </div>
-        <div class="legend">
-          <span>少</span>
-          <span class="cell level-0" />
-          <span class="cell level-1" />
-          <span class="cell level-2" />
-          <span class="cell level-3" />
-          <span class="cell level-4" />
-          <span>多</span>
-        </div>
+        <BaseChart :option="chartOption" class="chart" />
       </div>
     </template>
   </div>
@@ -135,45 +136,9 @@ onMounted(load)
   margin: 0 0 8px;
   font-size: 15px;
 }
-.heatmap {
-  display: flex;
-  overflow-x: auto;
-  padding: 8px;
+.chart {
+  height: 250px;
   border-radius: 10px;
   background: #fff;
-}
-.week {
-  display: flex;
-  flex-direction: column;
-}
-.cell {
-  width: 13px;
-  height: 13px;
-  margin: 2px;
-  border-radius: 3px;
-}
-.level-0 {
-  background: #ebedf0;
-}
-.level-1 {
-  background: #c6e0ff;
-}
-.level-2 {
-  background: #91caff;
-}
-.level-3 {
-  background: #4da3ff;
-}
-.level-4 {
-  background: #1989fa;
-}
-.legend {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-  margin-top: 8px;
-  color: #969799;
-  font-size: 12px;
 }
 </style>

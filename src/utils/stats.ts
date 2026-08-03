@@ -5,6 +5,11 @@ export interface HeatmapCell {
   count: number
 }
 
+/** 将热力图数据转换为 ECharts calendar 系列的 [日期, 次数] 数据 */
+export function toCalendarData(cells: HeatmapCell[]): [string, number][] {
+  return cells.map((cell) => [cell.date, cell.count])
+}
+
 /** 生成最近 days 天的打卡数据（按时间升序），无记录的天 count 为 0 */
 export function buildHeatmap(
   counts: Map<string, number>,
