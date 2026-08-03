@@ -44,8 +44,21 @@ pnpm preview     # 本地预览构建产物
 ## 功能规划
 
 - P0：词库（内置词表 + 自定义） / 卡片学习 + TTS / SM-2 复习调度 / 统计（打卡热力图）
-- P1：AI 流式释义与例句补全（SSE）、虚拟滚动、离线 PWA
+- P1：AI 流式释义与例句补全（SSE）✅ / 虚拟滚动 / 离线 PWA
 - P2：听写模式（平台限制说明）、选择题模式、数据导出备份
+
+## AI 代理接口契约
+
+前端通过环境变量 `VITE_AI_PROXY_BASE` 指向云函数（如腾讯云函数），API key 只存在于服务端。
+
+```text
+POST {VITE_AI_PROXY_BASE}/ai/explain
+请求体：{ "word": "bonjour" }
+响应：text/event-stream，每条 data 为 JSON：
+  { "type": "meaning|example|exampleZh|root|done", "content": "..." }
+```
+
+本地开发请复制 `.env.example` 为 `.env.local` 并填入地址；未配置时词库页 AI 按钮会提示不可用。
 
 ## 设计决策（ADR 摘要）
 

@@ -8,6 +8,8 @@ export interface Word {
   meaning: string
   example: string
   exampleZh: string
+  /** AI 生成的词根词缀拆解（可选） */
+  root?: string
   level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1'
   tags: string[]
 }

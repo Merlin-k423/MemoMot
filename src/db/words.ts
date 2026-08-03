@@ -23,6 +23,12 @@ export const wordRepo = {
     await db.words.put(word)
   },
 
+  /** 局部更新词条字段（AI 补全用） */
+  async patch(wordId: string, fields: Partial<Word>): Promise<void> {
+    const word = await db.words.get(wordId)
+    if (word) await db.words.put({ ...word, ...fields })
+  },
+
   /** 删除词条并级联清理其复习卡与学习记录（单事务） */
   async remove(wordId: string): Promise<void> {
     await db.transaction('rw', db.words, db.reviewCards, db.reviewLogs, async () => {

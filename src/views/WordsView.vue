@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { showConfirmDialog } from 'vant'
+import { showConfirmDialog, showToast } from 'vant'
+import { isAiConfigured } from '@/api/ai'
+import { useAiExplain } from '@/composables/useAiExplain'
 import { wordRepo } from '@/db/words'
 import type { Word } from '@/types'
 
@@ -8,6 +10,9 @@ const keyword = ref('')
 const words = ref<Word[]>([])
 const loading = ref(false)
 const showAdd = ref(false)
+const showAi = ref(false)
+const aiWord = ref<Word | null>(null)
+const { status: aiStatus, error: aiError, result: aiResult, run: runAi, reset: resetAi } = useAiExplain()
 
 const newWord = ref({
   word: '',
@@ -59,6 +64,22 @@ async function removeWord(word: Word) {
   await load()
 }
 
+async function startAi(word: Word) {
+  if (!isAiConfigured()) {
+    showToast('未配置 AI 代理（VITE_AI_PROXY_BASE）')
+    return
+  }
+  aiWord.value = word
+  showAi.value = true
+  await runAi(word)
+  if (aiStatus.value === 'done') await load()
+}
+
+function closeAi() {
+  showAi.value = false
+  resetAi()
+}
+
 onMounted(load)
 </script>
 
@@ -75,10 +96,26 @@ onMounted(load)
         <span class="fr">{{ w.word }}</span>
         <span class="zh">{{ w.pos }} {{ w.meaning }}</span>
         <span class="tag">{{ w.level }}</span>
+        <van-button size="mini" plain type="primary" class="ai-btn" @click="startAi(w)">AI</van-button>
         <van-icon name="delete-o" class="delete" @click="removeWord(w)" />
       </li>
     </ul>
     <van-empty v-if="words.length === 0" description="没有匹配的单词" />
+
+    <van-popup v-model:show="showAi" position="bottom" round>
+      <div class="ai-panel">
+        <h3>AI 补全：{{ aiWord?.word }}</h3>
+        <van-loading v-if="aiStatus === 'streaming'" size="20">正在生成释义与例句…</van-loading>
+        <div v-if="aiResult.meaning" class="ai-line"><b>释义：</b>{{ aiResult.meaning }}</div>
+        <div v-if="aiResult.root" class="ai-line"><b>词根：</b>{{ aiResult.root }}</div>
+        <div v-if="aiResult.example" class="ai-line"><b>例句：</b>{{ aiResult.example }}</div>
+        <div v-if="aiResult.exampleZh" class="ai-line"><b>翻译：</b>{{ aiResult.exampleZh }}</div>
+        <div v-if="aiStatus === 'error'" class="ai-error">{{ aiError }}</div>
+        <div class="ai-actions">
+          <van-button plain size="small" @click="closeAi">关闭</van-button>
+        </div>
+      </div>
+    </van-popup>
 
     <van-popup v-model:show="showAdd" position="bottom" round>
       <div class="add-form">
@@ -110,6 +147,30 @@ onMounted(load)
 .delete {
   color: #c8c9cc;
   font-size: 18px;
+}
+.ai-btn {
+  margin-right: 6px;
+}
+.ai-panel {
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+.ai-panel h3 {
+  margin: 0 0 12px;
+}
+.ai-line {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ai-error {
+  margin-top: 8px;
+  color: #ee0a24;
+  font-size: 13px;
+}
+.ai-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 .add-form {
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
