@@ -60,6 +60,20 @@ POST {VITE_AI_PROXY_BASE}/ai/explain
 
 本地开发请复制 `.env.example` 为 `.env.local` 并填入地址；未配置时词库页 AI 按钮会提示不可用。
 
+## 本地直连模拟（mock LLM）
+
+仓库内置一个零依赖的 mock LLM 服务（模拟 `dpv4flash` 模型的 SSE 流式接口），
+用于在不配置真实云函数的情况下演示直连链路：
+
+```sh
+pnpm mock:llm       # 启动常驻 mock 服务（http://localhost:8787）
+pnpm mock:direct    # 直连演示：客户端无代理直接消费 SSE 流，演示完自动关闭
+pnpm dev            # 词库页点「AI」按钮即可看到流式补全（已指向本地 mock）
+```
+
+注意：Node 客户端不校验 CORS；浏览器直连真实 LLM API 会被 CORS 与 key 安全拦截，
+因此生产环境仍需要云函数代理（`VITE_AI_PROXY_BASE` 指向云函数即可，前端代码不变）。
+
 ## 设计决策（ADR 摘要）
 
 - 本地优先：个人工具、数据主权、离线可用；代价是换设备需手动备份
