@@ -5,6 +5,8 @@ import { isAiConfigured } from '@/api/ai'
 import { useAiExplain } from '@/composables/useAiExplain'
 import { wordRepo } from '@/db/words'
 import type { Word } from '@/types'
+import { formatWordsCsv, parseWordCsv } from '@/utils/csv'
+import { formatDate } from '@/utils/date'
 
 const keyword = ref('')
 const words = ref<Word[]>([])
@@ -12,6 +14,7 @@ const loading = ref(false)
 const showAdd = ref(false)
 const showAi = ref(false)
 const aiWord = ref<Word | null>(null)
+const fileInput = ref<HTMLInputElement>()
 const { status: aiStatus, error: aiError, result: aiResult, run: runAi, reset: resetAi } = useAiExplain()
 
 const newWord = ref({
@@ -80,15 +83,55 @@ function closeAi() {
   resetAi()
 }
 
+function openImport() {
+  fileInput.value?.click()
+}
+
+async function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+
+  const text = await file.text()
+  const { words: imported, errors, skipped } = parseWordCsv(text)
+  if (imported.length === 0) {
+    showToast(`未解析到有效词条${errors.length ? `（${errors.length} 行错误）` : ''}`)
+    return
+  }
+  const added = await wordRepo.bulkAddIfMissing(imported)
+  await load()
+  const summary = [`导入 ${added} 词`]
+  if (skipped > 0) summary.push(`${skipped} 行重复`)
+  if (errors.length > 0) summary.push(`${errors.length} 行错误`)
+  showToast(summary.join('，'))
+}
+
+function exportCsv() {
+  const csv = formatWordsCsv(words.value)
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `memomot-words-${formatDate(Date.now())}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div class="page">
     <div class="header">
-      <h2>词库</h2>
-      <van-button size="small" type="primary" icon="plus" @click="openAdd">新增</van-button>
+      <h2>词库（{{ words.length }}）</h2>
+      <div class="header-actions">
+        <van-button size="mini" plain icon="down" @click="exportCsv">导出</van-button>
+        <van-button size="mini" plain icon="up" @click="openImport">导入</van-button>
+        <van-button size="mini" type="primary" icon="plus" @click="openAdd">新增</van-button>
+      </div>
     </div>
+    <input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileChange" />
     <van-search v-model="keyword" placeholder="搜索法语词或中文释义" />
     <van-loading v-if="loading" class="loading" />
     <ul class="word-list">
@@ -140,6 +183,10 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.header-actions {
+  display: flex;
+  gap: 6px;
 }
 .loading {
   margin-top: 24px;

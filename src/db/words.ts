@@ -23,6 +23,15 @@ export const wordRepo = {
     await db.words.put(word)
   },
 
+  /** 按 word 去重批量写入，返回实际新增数量（CSV 导入用） */
+  async bulkAddIfMissing(words: Word[]): Promise<number> {
+    const existing = await db.words.toArray()
+    const existingWords = new Set(existing.map((w) => w.word))
+    const fresh = words.filter((w) => !existingWords.has(w.word))
+    if (fresh.length > 0) await db.words.bulkPut(fresh)
+    return fresh.length
+  },
+
   /** 局部更新词条字段（AI 补全用） */
   async patch(wordId: string, fields: Partial<Word>): Promise<void> {
     const word = await db.words.get(wordId)
