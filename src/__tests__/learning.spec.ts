@@ -50,4 +50,11 @@ describe('learning store', () => {
 
     expect(store.queue.some((w) => w.id === learnedId)).toBe(false)
   })
+
+  it('记录剩余未学词数量', async () => {
+    await db.reviewCards.clear()
+    const store = useLearningStore()
+    await store.start()
+    expect(store.remaining).toBe(sampleWords.length - store.queue.length)
+  })
 })

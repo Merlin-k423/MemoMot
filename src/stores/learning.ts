@@ -13,6 +13,8 @@ export const useLearningStore = defineStore('learning', () => {
   const index = ref(0)
   const done = ref(0)
   const finished = ref(false)
+  /** 词库中剩余未学词数量（不含当前批次） */
+  const remaining = ref(0)
 
   const current = computed(() => queue.value[index.value])
   const inSession = computed(() => queue.value.length > 0 && !finished.value)
@@ -21,6 +23,7 @@ export const useLearningStore = defineStore('learning', () => {
     const all = await wordRepo.getAll()
     const learnedIds = new Set((await cardRepo.getAll()).map((card) => card.wordId))
     const fresh = all.filter((word) => !learnedIds.has(word.id))
+    remaining.value = Math.max(0, fresh.length - settings.dailyNewWords)
     queue.value = fresh.sort(() => Math.random() - 0.5).slice(0, settings.dailyNewWords)
     index.value = 0
     done.value = 0
@@ -44,5 +47,5 @@ export const useLearningStore = defineStore('learning', () => {
     else index.value++
   }
 
-  return { queue, index, done, finished, current, inSession, start, markLearned }
+  return { queue, index, done, finished, remaining, current, inSession, start, markLearned }
 })

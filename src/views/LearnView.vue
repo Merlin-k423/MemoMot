@@ -67,8 +67,15 @@ function speakWord() {
       </div>
     </template>
 
-    <van-empty v-else description="今日新词已学完">
-      <van-button type="primary" @click="router.push('/review')">去复习</van-button>
+    <van-empty v-else :description="learning.remaining > 0 ? '本组新词已学完' : '词库已全部学完'">
+      <div class="finish-actions">
+        <van-button v-if="learning.remaining > 0" type="primary" @click="start">
+          再记 {{ settings.dailyNewWords }} 个新词
+        </van-button>
+        <van-button :plain="learning.remaining > 0" type="primary" @click="router.push('/review')">
+          去复习
+        </van-button>
+      </div>
     </van-empty>
   </div>
 </template>
@@ -116,5 +123,10 @@ function speakWord() {
 .tip {
   margin-top: 12px;
   text-align: center;
+}
+.finish-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
 }
 </style>
