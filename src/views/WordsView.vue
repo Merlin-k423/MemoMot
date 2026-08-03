@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { showConfirmDialog } from 'vant'
-import { db } from '@/db'
 import { wordRepo } from '@/db/words'
 import type { Word } from '@/types'
 
@@ -56,8 +55,7 @@ async function addWord() {
 
 async function removeWord(word: Word) {
   await showConfirmDialog({ title: '删除单词', message: `确定删除「${word.word}」吗？` })
-  // TODO(Sprint 3)：同步清理 reviewCards / reviewLogs
-  await db.words.delete(word.id)
+  await wordRepo.remove(word.id)
   await load()
 }
 

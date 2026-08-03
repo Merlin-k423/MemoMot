@@ -23,6 +23,15 @@ export const wordRepo = {
     await db.words.put(word)
   },
 
+  /** 删除词条并级联清理其复习卡与学习记录（单事务） */
+  async remove(wordId: string): Promise<void> {
+    await db.transaction('rw', db.words, db.reviewCards, db.reviewLogs, async () => {
+      await db.words.delete(wordId)
+      await db.reviewCards.delete(wordId)
+      await db.reviewLogs.where('wordId').equals(wordId).delete()
+    })
+  },
+
   /** 词库为空时写入内置词表，返回是否执行了种子写入 */
   async seedIfEmpty(words: Word[]): Promise<boolean> {
     const count = await db.words.count()
