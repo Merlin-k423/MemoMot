@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import WordCard from '@/components/WordCard.vue'
 import { useSpeech } from '@/composables/useSpeech'
 import { useReviewStore } from '@/stores/review'
 import type { ReviewRating } from '@/types'
@@ -59,16 +60,8 @@ onMounted(init)
 
     <template v-else>
       <p class="hint">进度 {{ review.index + 1 }} / {{ review.total }}</p>
-      <div v-if="cur" class="card" @click="reveal">
-        <div class="word">{{ cur.word }}</div>
-        <div class="phonetic">{{ cur.phonetic }}</div>
-        <div v-if="showMeaning" class="meaning">
-          <div>{{ cur.pos }} {{ cur.meaning }}</div>
-          <p class="example">{{ cur.example }}</p>
-          <p class="example-zh">{{ cur.exampleZh }}</p>
-        </div>
-      </div>
-      <div v-else class="card card-missing">
+      <WordCard v-if="cur" :word="cur" :show-meaning="showMeaning" @click="reveal" />
+      <div v-else class="card-missing">
         <div class="word">词条数据缺失</div>
         <p class="hint">该词条可能已被删除，跳过即可</p>
         <van-button size="small" plain type="primary" @click="review.skip()">跳过</van-button>
@@ -92,7 +85,7 @@ onMounted(init)
 </template>
 
 <style scoped>
-.card {
+.card-missing {
   margin-top: 16px;
   min-height: 220px;
   padding: 36px 20px;
@@ -100,28 +93,11 @@ onMounted(init)
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   text-align: center;
-}
-.word {
-  font-size: 34px;
-  font-weight: 700;
-}
-.phonetic {
-  margin-top: 4px;
-  color: #969799;
-}
-.meaning {
-  margin-top: 16px;
-  font-size: 16px;
-}
-.example {
-  margin-top: 8px;
-  color: #646566;
-  font-size: 14px;
-  font-style: italic;
-}
-.example-zh {
-  color: #969799;
-  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 .loading {
   margin-top: 40px;
@@ -138,12 +114,5 @@ onMounted(init)
 }
 .ratings .van-button {
   padding: 0 4px;
-}
-.card-missing {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
 }
 </style>
