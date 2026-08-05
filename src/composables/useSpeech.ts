@@ -15,5 +15,5 @@ export function useSpeech() {
     return true
   }
 
-  return { supported, speak }
+  return { speak }
 }

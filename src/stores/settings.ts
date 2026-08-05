@@ -35,10 +35,5 @@ export const useSettingsStore = defineStore('settings', () => {
     await settingsRepo.set('dailyNewWords', String(dailyNewWords.value))
   }
 
-  async function setAutoSpeak(v: boolean) {
-    autoSpeak.value = v
-    await settingsRepo.set('autoSpeak', String(v))
-  }
-
-  return { dailyNewWords, autoSpeak, load, setDailyNewWords, setAutoSpeak }
+  return { dailyNewWords, autoSpeak, load, setDailyNewWords }
 })

@@ -93,9 +93,15 @@ async function handleAi() {
           <div class="row"><b>遗忘次数</b><span>{{ card.lapses }} 次</span></div>
         </template>
 
-        <!-- 运行时 AI 翻译：自定义词/缺例句的词按需补全，SSE 流式展示，结果落库 -->
+        <!-- 运行时 AI 翻译：内置 2000 词已由数据管道预翻译，按钮仅在缺释义/例句时显示（自定义词/导入词场景） -->
         <div class="ai-section">
-          <van-button v-if="aiStatus === 'idle'" size="small" type="primary" plain @click="handleAi">
+          <van-button
+            v-if="aiStatus === 'idle' && (!wordData.meaning || !wordData.example)"
+            size="small"
+            type="primary"
+            plain
+            @click="handleAi"
+          >
             AI 补全释义/例句
           </van-button>
           <van-loading v-else-if="aiStatus === 'streaming'" size="20">正在生成…</van-loading>
