@@ -41,8 +41,6 @@ pnpm type-check  # vue-tsc 类型检查
 pnpm test:unit   # Vitest 单元测试
 pnpm build       # 类型检查 + 构建
 pnpm preview     # 本地预览构建产物
-pnpm mock:llm    # 启动本地 mock LLM 服务（SSE 流式）
-pnpm mock:direct # 直连 mock 演示（演示完自动关闭）
 ```
 
 ## 功能规划
@@ -73,19 +71,8 @@ POST {VITE_AI_PROXY_BASE}/ai/explain
   { "type": "meaning|example|exampleZh|root|done", "content": "..." }
 ```
 
-本地开发请复制 `.env.example` 为 `.env.local` 并填入地址；未配置时词库页 AI 按钮会提示不可用。
-
-## 本地直连模拟（mock LLM）
-
-仓库内置一个零依赖的 mock LLM 服务（模拟 SSE 流式接口），用于在不配置真实云函数的情况下演示直连链路：
-
-```sh
-pnpm mock:llm       # 启动常驻 mock 服务（http://localhost:8787）
-pnpm mock:direct    # 直连演示：客户端无代理直接消费 SSE 流，演示完自动关闭
-pnpm dev            # 词库页点「AI」按钮即可看到流式补全（已指向本地 mock）
-```
-
-> 注意：Node 客户端不校验 CORS；浏览器直连真实 LLM API 会被 CORS 与 Key 安全拦截，因此生产环境仍需云函数代理（`VITE_AI_PROXY_BASE` 指向云函数即可，前端代码不变）。
+运行时 AI 补全为可选能力：内置 2000 词已由数据管道预翻译，仅当自定义/导入词条缺释义或例句时，详情抽屉会显示补全按钮。
+如需启用，设置 `VITE_AI_PROXY_BASE` 指向代理服务（API Key 只存服务端）。
 
 ## 部署
 
