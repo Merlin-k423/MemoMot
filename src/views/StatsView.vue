@@ -15,6 +15,8 @@ const todayCount = ref(0)
 const streak = ref(0)
 const heatmap = ref<HeatmapCell[]>([])
 const fileInput = ref<HTMLInputElement>()
+const selectedFile = ref<File | null>(null)
+const importing = ref(false)
 
 const DAYS = 84 // 12 周
 
@@ -67,19 +69,26 @@ async function handleExport() {
   showToast('备份已导出')
 }
 
-async function handleImport(event: Event) {
+function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file) return
+  selectedFile.value = file ?? null
+}
+
+async function confirmImport() {
+  if (!selectedFile.value) return
+  importing.value = true
   try {
-    const backup = parseBackup(await file.text())
+    const backup = parseBackup(await selectedFile.value.text())
     await importBackup(backup)
     showToast('备份导入成功')
+    selectedFile.value = null
     await load()
   } catch (e) {
     showToast(e instanceof BackupError ? e.message : '导入失败')
   } finally {
-    input.value = ''
+    importing.value = false
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
@@ -137,18 +146,53 @@ onMounted(load)
       </div>
 
       <div class="backup-section">
-        <h3>数据备份</h3>
-        <p class="hint">导出 JSON 备份，换设备或清缓存后可恢复</p>
+        <div class="backup-header">
+          <div class="backup-icon">
+            <van-icon name="shield-o" />
+          </div>
+          <div class="backup-info">
+            <h3>数据备份</h3>
+            <p class="hint">导出 JSON 备份，换设备或清缓存后可恢复</p>
+          </div>
+        </div>
+
+        <button class="backup-card" @click="fileInput?.click()">
+          <div class="backup-card-left">
+            <div class="backup-card-icon" :class="{ active: selectedFile }">
+              <van-icon :name="selectedFile ? 'description' : 'add-o'" />
+            </div>
+            <div class="backup-card-text">
+              <div v-if="!selectedFile" class="backup-card-title">选择备份文件</div>
+              <div v-else class="backup-card-title filename">{{ selectedFile.name }}</div>
+              <div v-if="!selectedFile" class="backup-card-desc">点击选择 JSON 文件进行导入</div>
+              <div v-else class="backup-card-desc">{{ (selectedFile.size / 1024).toFixed(1) }} KB · 点击重新选择</div>
+            </div>
+          </div>
+          <van-icon name="arrow" class="backup-card-arrow" />
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="application/json,.json"
+          class="hidden-input"
+          @change="onFileChange"
+        />
+
         <div class="backup-actions">
-          <van-button size="small" type="primary" plain icon="down" @click="handleExport">导出备份</van-button>
-          <van-button size="small" plain icon="up" @click="fileInput?.click()">导入备份</van-button>
-          <input
-            ref="fileInput"
-            type="file"
-            accept="application/json,.json"
-            class="hidden-input"
-            @change="handleImport"
-          />
+          <van-button size="small" type="primary" icon="down" block @click="handleExport">
+            导出备份
+          </van-button>
+          <van-button
+            size="small"
+            type="success"
+            icon="passed"
+            block
+            :disabled="!selectedFile"
+            :loading="importing"
+            @click="confirmImport"
+          >
+            导入备份
+          </van-button>
         </div>
       </div>
     </template>
@@ -231,18 +275,110 @@ onMounted(load)
 }
 .backup-section {
   margin-top: 16px;
-  padding: 12px;
-  border-radius: 10px;
+  padding: 16px;
+  border-radius: 12px;
   background: #fff;
 }
-.backup-section h3 {
-  margin: 0 0 4px;
+.backup-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.backup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e8f3ff 0%, #d4e8ff 100%);
+  color: #1989fa;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.backup-info h3 {
+  margin: 0;
   font-size: 15px;
+  font-weight: 600;
+}
+.backup-info .hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #969799;
+  line-height: 1.5;
+}
+.backup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1.5px dashed #dcdee0;
+  border-radius: 10px;
+  background: #f7f8fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.backup-card:active {
+  border-color: #1989fa;
+  background: #f0f7ff;
+}
+.backup-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.backup-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ebedf0;
+  color: #969799;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.backup-card-icon.active {
+  background: #e8f7ee;
+  color: #07c160;
+}
+.backup-card-text {
+  min-width: 0;
+  flex: 1;
+}
+.backup-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #323233;
+}
+.backup-card-title.filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.backup-card-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #969799;
+}
+.backup-card-arrow {
+  color: #c8c9cc;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .backup-actions {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 14px;
+}
+.backup-actions .van-button {
+  flex: 1;
 }
 .hidden-input {
   display: none;

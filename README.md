@@ -1,32 +1,34 @@
 # MemoMot 法语记词
 
-本地优先的法语单词记忆工具（H5 移动端）。数据存储在本地（IndexedDB / Dexie），
-离线可用，支持间隔重复（SM-2）复习调度。
+本地优先（Local-First）的法语单词记忆工具（H5 移动端 PWA）。数据全部存储在浏览器本地（IndexedDB / Dexie），离线可用，支持 SM-2 间隔重复复习调度与 AI 流式释义补全。
 
 ## 技术栈
 
-- 构建：Vite + Vue 3 + TypeScript
-- UI：Vant 4（移动端组件库）
-- 状态：Pinia + vue-router
-- 数据：Dexie（IndexedDB）
-- 离线：vite-plugin-pwa
-- 测试：Vitest + Vue Test Utils
-- 工程：ESLint + Prettier
+| 分类 | 选型                                     |
+| ---- | ---------------------------------------- |
+| 构建 | Vite + Vue 3 + TypeScript                |
+| UI   | Vant 4（移动端组件库）                   |
+| 状态 | Pinia + Vue Router（History 模式）       |
+| 数据 | Dexie 4（IndexedDB 封装）                |
+| 离线 | vite-plugin-pwa（Workbox）               |
+| 测试 | Vitest + Vue Test Utils + fake-indexeddb |
+| 工程 | ESLint + Prettier + pnpm                 |
 
 ## 目录结构
 
 ```text
 src/
-  api/           AI 代理接口契约（腾讯云函数，SSE）
-  components/    通用组件
-  composables/   可复用逻辑（如 useSpeech）
+  api/           AI 代理接口契约（云函数 SSE）
+  composables/   可复用逻辑（useSpeech / useAiExplain）
   data/          内置词表
-  router/        路由（hash 模式，适配静态托管）
-  stores/        Pinia 状态
+  db/            Dexie 数据层（schema + repository）
+  router/        路由（History 模式 + SPA fallback）
+  stores/        Pinia 状态（review / learning / settings）
   styles/        全局样式
-  types/         TypeScript 类型（Word / ReviewCard 等）
-  utils/         纯函数（SM-2 调度、日期）
-  views/         页面（学习 / 词库 / 复习 / 统计）
+  types/         TypeScript 类型（Word / ReviewCard / ReviewLog 等）
+  utils/         纯函数（SM-2 调度 / 日期 / 统计 / SSE 解析 / 备份）
+  views/         页面（学习 / 词库 / 复习 / 统计 / 404）
+  __tests__/     单元测试
 ```
 
 ## 脚本
@@ -37,21 +39,29 @@ pnpm dev         # 本地开发
 pnpm lint        # ESLint 检查并修复
 pnpm type-check  # vue-tsc 类型检查
 pnpm test:unit   # Vitest 单元测试
-pnpm build       # 构建 + 类型检查
+pnpm build       # 类型检查 + 构建
 pnpm preview     # 本地预览构建产物
+pnpm mock:llm    # 启动本地 mock LLM 服务（SSE 流式）
+pnpm mock:direct # 直连 mock 演示（演示完自动关闭）
 ```
 
 ## 功能规划
 
-- P0：词库（内置 100 词 + 自定义 + CSV 导入导出） / 卡片学习 + TTS / SM-2 复习调度 / 统计（打卡热力图）
-- P1：AI 流式释义与例句补全（SSE）✅ / 离线 PWA
-- P2：听写模式（平台限制说明）、选择题模式 / 数据导出备份 ✅
+### P0（核心）
+
+- 词库管理：内置种子词 + 自定义新增 / 删除 / 检索
+- 新词学习会话：每日定量随机抽取，TTS 发音
+- SM-2 复习调度：四档评分（忘记 / 模糊 / 记得 / 轻松）
+- 统计页：打卡热力图、连续天数、累计/今日复习数
+- AI 流式释义补全（SSE）
+- 离线 PWA
+- 数据备份：JSON 导出 / 导入（含版本校验与事务写入）
 
 CSV 格式（首行表头）：`word,phonetic,pos,meaning,example,exampleZh,level,tags`
 
 ## AI 代理接口契约
 
-前端通过环境变量 `VITE_AI_PROXY_BASE` 指向云函数（如腾讯云函数），API key 只存在于服务端。
+前端通过环境变量 `VITE_AI_PROXY_BASE` 指向云函数（如腾讯云函数），API Key 只存在于服务端，前端不暴露。
 
 ```text
 POST {VITE_AI_PROXY_BASE}/ai/explain
@@ -64,8 +74,7 @@ POST {VITE_AI_PROXY_BASE}/ai/explain
 
 ## 本地直连模拟（mock LLM）
 
-仓库内置一个零依赖的 mock LLM 服务（模拟 `dpv4flash` 模型的 SSE 流式接口），
-用于在不配置真实云函数的情况下演示直连链路：
+仓库内置一个零依赖的 mock LLM 服务（模拟 SSE 流式接口），用于在不配置真实云函数的情况下演示直连链路：
 
 ```sh
 pnpm mock:llm       # 启动常驻 mock 服务（http://localhost:8787）
@@ -73,13 +82,21 @@ pnpm mock:direct    # 直连演示：客户端无代理直接消费 SSE 流，�
 pnpm dev            # 词库页点「AI」按钮即可看到流式补全（已指向本地 mock）
 ```
 
-注意：Node 客户端不校验 CORS；浏览器直连真实 LLM API 会被 CORS 与 key 安全拦截，
-因此生产环境仍需要云函数代理（`VITE_AI_PROXY_BASE` 指向云函数即可，前端代码不变）。
+> 注意：Node 客户端不校验 CORS；浏览器直连真实 LLM API 会被 CORS 与 Key 安全拦截，因此生产环境仍需云函数代理（`VITE_AI_PROXY_BASE` 指向云函数即可，前端代码不变）。
+
+## 部署
+
+项目使用 **History 路由模式**，部署到静态服务器时需配置 SPA fallback（所有未知路径回退到 `index.html`）：
+
+- **Vercel**：见 [vercel.json](./vercel.json)，已配置 `rewrites`
+- **Netlify / Cloudflare Pages**：见 [public/_redirects](./public/_redirects)，规则为 `/* /index.html 200`
+- **PWA 离线**：见 [vite.config.ts](./vite.config.ts) 的 `workbox.navigateFallback`
 
 ## 设计决策（ADR 摘要）
 
-- 本地优先：个人工具、数据主权、离线可用；代价是换设备需手动备份
-- 数据备份：导出/导入 JSON（含版本校验与事务写入，见 `src/utils/backup.ts`、`src/db/backup.ts`），用于换设备迁移
-- History 路由：URL 更美观；部署时需配置 SPA fallback（见 `vercel.json` / `public/_redirects`），PWA 离线导航依赖 `navigateFallback`
-- SM-2 纯函数：调度逻辑可单测、可演进（详见 `src/utils/sm2.ts`）
-- AI 代理走云函数：API key 只存在于服务端环境变量，前端不暴露
+- **本地优先**：个人工具、数据主权、离线可用；代价是换设备需手动备份迁移
+- **Repository Pattern**：业务层（Store）不直接依赖 DB 细节，通过 `wordRepo` / `cardRepo` / `logRepo` 封装数据访问
+- **SM-2 纯函数化**：调度逻辑可独立单测、可演进（见 [src/utils/sm2.ts](./src/utils/sm2.ts)）
+- **数据备份**：导出 / 导入 JSON，含版本校验与事务性写入（见 [src/utils/backup.ts](./src/utils/backup.ts)、[src/db/backup.ts](./src/db/backup.ts)）
+- **History 路由 + SPA fallback**：URL 更美观，部署需配套 fallback 配置
+- **AI 走云函数代理**：API Key 只存在于服务端环境变量，前端不暴露
