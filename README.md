@@ -10,7 +10,6 @@
 - **词库管理**：2000 词虚拟滚动流畅渲染；CSV 导入 / 导出；详情抽屉展示释义、例句、词根与学习状态
 - **SM-2 复习调度**：四档评分（忘记 / 模糊 / 记得 / 轻松），调度逻辑为纯函数并单测覆盖全部边界
 - **学习统计**：手绘 12 周打卡热力图、连续打卡天数、累计 / 今日复习数
-- **AI 补全（可选）**：SSE 流式释义 / 例句补全，运行时对缺数据的自定义词按需翻译并落库
 - **数据备份**：JSON 导出 / 导入（schema 版本校验 + 多表事务写入），换设备可迁移
 - **离线 PWA**：Service Worker 缓存，断网可用；History 路由 + SPA fallback
 
@@ -42,16 +41,15 @@
 
 ```text
 src/
-  api/           AI 代理接口契约（SSE，惰性读取环境变量）
   components/    通用组件（WordCard / WordDetailDrawer / VirtualList）
-  composables/   可复用逻辑（useSpeech / useAiExplain）
+  composables/   可复用逻辑（useSpeech）
   data/          词库数据（frequencyWords.json + 类型化导入）
   db/            Dexie 数据层（schema + repository + 备份）
   router/        路由（History 模式 + SPA fallback）
   stores/        Pinia 状态（daily / learning / review / settings）
   styles/        全局样式
   types/         TypeScript 类型
-  utils/         纯函数（SM-2 / 日期 / 统计 / SSE / CSV / 备份 / 复习状态）
+  utils/         纯函数（SM-2 / 日期 / 统计 / CSV / 备份 / 复习状态）
   views/         页面（学习 / 词库 / 复习 / 统计 / 404）
   __tests__/     单元测试
 scripts/
@@ -87,19 +85,6 @@ pnpm preview     # 本地预览生产构建
 
 CI（GitHub Actions）在 push 时自动执行 lint / 类型检查 / 测试 / 构建。
 
-## AI 代理接口契约（可选能力）
-
-前端通过环境变量 `VITE_AI_PROXY_BASE` 指向代理服务，API Key 只存在于服务端：
-
-```text
-POST {VITE_AI_PROXY_BASE}/ai/explain
-请求体：{ "word": "bonjour" }
-响应：text/event-stream，每条 data 为 JSON：
-  { "type": "meaning|example|exampleZh|root|done", "content": "..." }
-```
-
-内置 2000 词已由数据管道预翻译，运行时 AI 补全仅在自定义 / 导入词条缺释义或例句时按需触发。
-
 ## 设计决策（ADR 摘要）
 
 - **本地优先**：数据主权、离线可用、零运维；代价是换设备需手动备份迁移
@@ -108,7 +93,6 @@ POST {VITE_AI_PROXY_BASE}/ai/explain
 - **现状表 + 历史表分离**：状态查询快、统计有完整流水
 - **词库懒加载分包**：主包 gzip 约 76KB，2000 词数据 106KB 按需加载
 - **虚拟滚动**：2000 条 DOM 仅渲染可视区间约 20 行
-- **AI 走服务端代理**：Key 只存在于服务端环境变量，前端零暴露
 
 ## 路线图
 
