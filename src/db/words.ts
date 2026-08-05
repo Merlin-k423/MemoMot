@@ -11,6 +11,10 @@ export const wordRepo = {
     return db.words.toArray()
   },
 
+  async getByWordId(wordId: string): Promise<Word | undefined> {
+    return db.words.get(wordId)
+  },
+
   async search(keyword: string): Promise<Word[]> {
     const k = keyword.trim().toLowerCase()
     if (!k) return db.words.toArray()

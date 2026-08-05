@@ -19,10 +19,13 @@ export interface AiExplainChunk {
   content: string
 }
 
-const AI_PROXY_BASE = import.meta.env.VITE_AI_PROXY_BASE ?? ''
+/** 惰性读取代理地址：测试可动态注入，避免模块加载时锁定环境变量 */
+function getAiProxyBase(): string {
+  return import.meta.env.VITE_AI_PROXY_BASE ?? ''
+}
 
 export function isAiConfigured(): boolean {
-  return AI_PROXY_BASE.length > 0
+  return getAiProxyBase().length > 0
 }
 
 /** 流式获取单词释义/例句（SSE），逐条产出 AiExplainChunk */
@@ -30,9 +33,10 @@ export async function* explainWordStream(
   payload: AiExplainPayload,
   signal?: AbortSignal,
 ): AsyncGenerator<AiExplainChunk> {
-  if (!isAiConfigured()) throw new Error('VITE_AI_PROXY_BASE 未配置')
+  const base = getAiProxyBase()
+  if (!base) throw new Error('VITE_AI_PROXY_BASE 未配置')
 
-  const res = await fetch(`${AI_PROXY_BASE}/ai/explain`, {
+  const res = await fetch(`${base}/ai/explain`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
