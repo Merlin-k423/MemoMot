@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { showConfirmDialog, showToast } from 'vant'
 import { isAiConfigured } from '@/api/ai'
+import WordDetailDrawer from '@/components/WordDetailDrawer.vue'
 import { useAiExplain } from '@/composables/useAiExplain'
 import { wordRepo } from '@/db/words'
 import type { Word } from '@/types'
@@ -13,7 +14,9 @@ const words = ref<Word[]>([])
 const loading = ref(false)
 const showAdd = ref(false)
 const showAi = ref(false)
+const showDetail = ref(false)
 const aiWord = ref<Word | null>(null)
+const selectedWord = ref<Word | null>(null)
 const fileInput = ref<HTMLInputElement>()
 const { status: aiStatus, error: aiError, result: aiResult, run: runAi, reset: resetAi } = useAiExplain()
 
@@ -83,6 +86,11 @@ function closeAi() {
   resetAi()
 }
 
+function openDetail(word: Word) {
+  selectedWord.value = word
+  showDetail.value = true
+}
+
 function openImport() {
   fileInput.value?.click()
 }
@@ -135,12 +143,12 @@ onMounted(load)
     <van-search v-model="keyword" placeholder="搜索法语词或中文释义" />
     <van-loading v-if="loading" class="loading" />
     <ul class="word-list">
-      <li v-for="w in words" :key="w.id">
+      <li v-for="w in words" :key="w.id" class="word-item" @click="openDetail(w)">
         <span class="fr">{{ w.word }}</span>
         <span class="zh">{{ w.pos }} {{ w.meaning }}</span>
         <span class="tag">{{ w.level }}</span>
-        <van-button size="mini" plain type="primary" class="ai-btn" @click="startAi(w)">AI</van-button>
-        <van-icon name="delete-o" class="delete" @click="removeWord(w)" />
+        <van-button size="mini" plain type="primary" class="ai-btn" @click.stop="startAi(w)">AI</van-button>
+        <van-icon name="delete-o" class="delete" @click.stop="removeWord(w)" />
       </li>
     </ul>
     <van-empty v-if="words.length === 0" description="没有匹配的单词" />
@@ -175,6 +183,8 @@ onMounted(load)
         </div>
       </div>
     </van-popup>
+
+    <WordDetailDrawer v-model:show="showDetail" :word="selectedWord" />
   </div>
 </template>
 
@@ -192,6 +202,13 @@ onMounted(load)
 }
 .loading {
   margin-top: 24px;
+}
+.word-item {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.word-item:active {
+  background: #f7f8fa;
 }
 .delete {
   color: #c8c9cc;
