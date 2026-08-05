@@ -1,5 +1,6 @@
 import type { Word } from '@/types'
 import { db } from './index'
+import { settingsRepo } from './settings'
 
 export const wordRepo = {
   async count(): Promise<number> {
@@ -30,6 +31,18 @@ export const wordRepo = {
     const fresh = words.filter((w) => !existingWords.has(w.word))
     if (fresh.length > 0) await db.words.bulkPut(fresh)
     return fresh.length
+  },
+
+  /**
+   * 懒加载全量词库（FrequencyWords 2000 词）：
+   * 只在词库页首次打开时种入，用 settings 标记保证幂等，避免首屏主包携带大词库。
+   */
+  async ensureFullBank(frequencyWords: Word[]): Promise<number> {
+    const flag = await settingsRepo.get('fullBankSeeded')
+    if (flag === '1') return 0
+    const added = await this.bulkAddIfMissing(frequencyWords)
+    await settingsRepo.set('fullBankSeeded', '1')
+    return added
   },
 
   /** 局部更新词条字段（AI 补全用） */

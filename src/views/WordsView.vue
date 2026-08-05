@@ -3,8 +3,10 @@ import { onMounted, ref, watch } from 'vue'
 import { showConfirmDialog, showToast } from 'vant'
 import { isAiConfigured } from '@/api/ai'
 import WordDetailDrawer from '@/components/WordDetailDrawer.vue'
+import VirtualList from '@/components/VirtualList.vue'
 import { useAiExplain } from '@/composables/useAiExplain'
 import { wordRepo } from '@/db/words'
+import { frequencyWords } from '@/data/frequencyWords'
 import type { Word } from '@/types'
 import { formatWordsCsv, parseWordCsv } from '@/utils/csv'
 import { formatDate } from '@/utils/date'
@@ -126,7 +128,12 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  // 词库页首次打开时懒加载全量 2000 词（避免首屏主包携带大词库）
+  const added = await wordRepo.ensureFullBank(frequencyWords)
+  if (added > 0) await load()
+})
 </script>
 
 <template>
@@ -142,15 +149,25 @@ onMounted(load)
     <input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileChange" />
     <van-search v-model="keyword" placeholder="搜索法语词或中文释义" />
     <van-loading v-if="loading" class="loading" />
-    <ul class="word-list">
-      <li v-for="w in words" :key="w.id" class="word-item" @click="openDetail(w)">
-        <span class="fr">{{ w.word }}</span>
-        <span class="zh">{{ w.pos }} {{ w.meaning }}</span>
-        <span class="tag">{{ w.level }}</span>
-        <van-button size="mini" plain type="primary" class="ai-btn" @click.stop="startAi(w)">AI</van-button>
-        <van-icon name="delete-o" class="delete" @click.stop="removeWord(w)" />
-      </li>
-    </ul>
+    <VirtualList
+      v-else-if="words.length > 0"
+      :items="words"
+      :row-height="56"
+      :height="560"
+      key-field="id"
+    >
+      <template #default="{ item }">
+        <div class="word-item" @click="openDetail(item)">
+          <span class="fr">{{ item.word }}</span>
+          <span class="zh">{{ item.pos }} {{ item.meaning }}</span>
+          <span class="tag">{{ item.level }}</span>
+          <van-button size="mini" plain type="primary" class="ai-btn" @click.stop="startAi(item)">
+            AI
+          </van-button>
+          <van-icon name="delete-o" class="delete" @click.stop="removeWord(item)" />
+        </div>
+      </template>
+    </VirtualList>
     <van-empty v-if="words.length === 0" description="没有匹配的单词" />
 
     <van-popup v-model:show="showAi" position="bottom" round>
@@ -204,6 +221,14 @@ onMounted(load)
   margin-top: 24px;
 }
 .word-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #f2f3f5;
+  background: #fff;
   cursor: pointer;
   transition: background 0.2s ease;
 }

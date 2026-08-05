@@ -16,6 +16,7 @@ describe('WordsView', () => {
   it('渲染示例词库', async () => {
     const wrapper = mount(WordsView, { global: { plugins: [Vant] } })
     await flushPromises()
+    await flushPromises()
     expect(wrapper.text()).toContain('bonjour')
     expect(wrapper.text()).toContain('merci')
   })
