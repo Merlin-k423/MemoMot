@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/db'
 import { wordRepo } from '@/db/words'
-import { sampleWords } from '@/data/words'
 import type { Word } from '@/types'
+import { testWords } from './fixtures'
 
 const freq: Word[] = [
   {
@@ -37,10 +37,10 @@ describe('wordRepo', () => {
   })
 
   it('ensureFullBank 首次种入全量词，重复调用幂等', async () => {
-    await wordRepo.seedIfEmpty(sampleWords)
+    await wordRepo.seedIfEmpty(testWords)
     expect(await wordRepo.ensureFullBank(freq)).toBe(2)
     expect(await wordRepo.ensureFullBank(freq)).toBe(0)
-    expect(await wordRepo.count()).toBe(sampleWords.length + 2)
+    expect(await wordRepo.count()).toBe(testWords.length + 2)
   })
 
   it('bulkAddIfMissing 按 word 去重', async () => {

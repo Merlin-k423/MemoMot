@@ -4,13 +4,13 @@ import { flushPromises, mount } from '@vue/test-utils'
 import Vant from 'vant'
 import { db } from '@/db'
 import { wordRepo } from '@/db/words'
-import { sampleWords } from '@/data/words'
 import WordsView from '@/views/WordsView.vue'
+import { testWords } from './fixtures'
 
 describe('WordsView', () => {
   beforeAll(async () => {
     await db.open()
-    await wordRepo.seedIfEmpty(sampleWords)
+    await wordRepo.seedIfEmpty(testWords)
   })
 
   it('渲染示例词库', async () => {
