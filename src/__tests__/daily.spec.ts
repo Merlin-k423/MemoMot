@@ -5,14 +5,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import { db } from '@/db'
 import { cardRepo } from '@/db/cards'
 import { wordRepo } from '@/db/words'
-import { sampleWords } from '@/data/words'
 import { useDailyStore } from '@/stores/daily'
 import { useReviewStore } from '@/stores/review'
+import { testWords } from './fixtures'
 
 async function resetDb() {
   await db.open()
   await Promise.all([db.words.clear(), db.reviewCards.clear(), db.reviewLogs.clear(), db.settings.clear()])
-  await wordRepo.seedIfEmpty(sampleWords)
+  await wordRepo.seedIfEmpty(testWords)
 }
 
 function dueCard(wordId: string) {
@@ -32,7 +32,7 @@ describe('daily store', () => {
   })
 
   it('有到期卡时先复习，复习完成后自动进入新词学习', async () => {
-    const first = sampleWords[0]
+    const first = testWords[0]
     if (!first) throw new Error('词库为空')
     await cardRepo.upsert(dueCard(first.id))
 
@@ -47,7 +47,7 @@ describe('daily store', () => {
   })
 
   it('全部词都有卡且复习完后任务结束', async () => {
-    for (const w of sampleWords) {
+    for (const w of testWords) {
       await cardRepo.upsert(dueCard(w.id))
     }
 

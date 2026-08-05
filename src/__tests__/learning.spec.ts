@@ -5,14 +5,15 @@ import { db } from '@/db'
 import { cardRepo } from '@/db/cards'
 import { logRepo } from '@/db/logs'
 import { wordRepo } from '@/db/words'
-import { sampleWords } from '@/data/words'
 import { useLearningStore } from '@/stores/learning'
+import { testWords } from './fixtures'
 
 describe('learning store', () => {
   beforeEach(async () => {
     setActivePinia(createPinia())
     await db.open()
-    await wordRepo.seedIfEmpty(sampleWords)
+    await Promise.all([db.words.clear(), db.reviewCards.clear(), db.reviewLogs.clear(), db.settings.clear()])
+    await wordRepo.seedIfEmpty(testWords)
   })
 
   it('学习新词后生成复习卡（次日到期）与学习记录', async () => {
@@ -55,6 +56,6 @@ describe('learning store', () => {
     await db.reviewCards.clear()
     const store = useLearningStore()
     await store.start()
-    expect(store.remaining).toBe(sampleWords.length - store.queue.length)
+    expect(store.remaining).toBe(testWords.length - store.queue.length)
   })
 })
