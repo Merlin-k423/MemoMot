@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Word } from '@/types'
 
+// 词卡通用展示组件：复习页与首页今日任务两处复用。
+// 职责边界：只负责展示（词/音标/释义/例句），点击交互通过事件上抛，由父组件决定行为
 defineProps<{ word: Word; showMeaning: boolean }>()
 const emit = defineEmits<{ (e: 'click'): void }>()
 </script>

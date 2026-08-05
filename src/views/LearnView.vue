@@ -56,6 +56,7 @@ function speakWord() {
 }
 
 function onSelectDaily(action: { name?: string; value?: unknown }) {
+  // 四档阈值白名单由 settings store 校验，这里只负责转发
   if (typeof action.value === 'number') void settings.setDailyNewWords(action.value)
   showDailyPicker.value = false
 }
@@ -90,6 +91,7 @@ onMounted(() => {
 
     <van-loading v-if="daily.stage === 'idle'" class="loading" />
 
+    <!-- 阶段 1：复习到期词，评完最后一张自动进入新词 -->
     <template v-else-if="daily.stage === 'review'">
       <WordCard v-if="reviewCur" :word="reviewCur" :show-meaning="showMeaning" @click="reveal" />
       <div v-else class="card-missing">
@@ -113,6 +115,7 @@ onMounted(() => {
       </div>
     </template>
 
+    <!-- 阶段 2：学习新词 -->
     <template v-else-if="daily.stage === 'learn'">
       <van-progress :percentage="learnProgress" stroke-width="6" class="progress" />
       <WordCard v-if="learnCur" :word="learnCur" :show-meaning="showMeaning" @click="reveal" />
@@ -125,6 +128,7 @@ onMounted(() => {
       </div>
     </template>
 
+    <!-- 完成：全部学完或词库已清空 -->
     <van-empty v-else :description="learning.remaining > 0 ? '今日任务完成' : '词库已全部学完'">
       <div class="finish-actions">
         <van-button v-if="learning.remaining > 0" type="primary" @click="nextBatch">
