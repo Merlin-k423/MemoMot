@@ -48,37 +48,3 @@ h2 {
   color: #969799;
   font-size: 13px;
 }
-
-.word-list {
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.word-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.word-list .fr {
-  font-weight: 600;
-}
-
-.word-list .zh {
-  flex: 1;
-  color: #646566;
-  font-size: 14px;
-}
-
-.word-list .tag {
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: #ecf5ff;
-  color: #1989fa;
-  font-size: 12px;
-}
