@@ -1,8 +1,8 @@
 # MemoMot 法语记词
 
 本地优先（Local-First）的法语词汇记忆 PWA。数据全部存储在浏览器 IndexedDB，离线可用；内置
-**FrequencyWords 2000 词单一数据源**（AI 生成音标 / 释义 / 例句），基于 **SM-2 间隔重复算法**
-调度复习，支持今日任务两段式流程（先复习到期词、再学新词）。
+**FrequencyWords 2000 词词库**，基于 **SM-2 间隔重复算法**调度复习，支持今日任务两段式流程
+（先复习到期词、再学新词）。
 
 ## 功能特性
 
@@ -58,19 +58,14 @@ scripts/
   generate-words.mjs   词库数据管道（FrequencyWords + DeepSeek 批量翻译）
 ```
 
-## 词库数据管道
+## 数据来源（发布前的一次性前处理）
 
-内置 2000 词由 `pnpm generate:words` 生成（见 [scripts/generate-words.mjs](./scripts/generate-words.mjs)）：
+内置 2000 词来自 FrequencyWords 法语词频表，词条字段（音标 / 词性 / 释义 / 例句）由 LLM 批量生成，
+以静态 JSON（`src/data/frequencyWords.json`）随应用分发。该步骤属于**数据前处理**，不属于应用开发内容：
+应用运行时完全本地、不依赖任何 AI 服务。难度等级按词频排名映射（前 500 = A1，依次至 B2）。
 
-```text
-FrequencyWords 法语词频表（词 + 词频）
-  → DeepSeek 批量翻译（并发 6 worker、断点续传、降批重试）
-  → src/data/frequencyWords.json（2000 词，含 IPA 音标 / 词性 / 释义 / 例句）
-  → 应用启动时懒加载分包种入 IndexedDB
-```
-
-API Key 只在本机 `.env.local`（gitignored），生成的数据是静态文件，密钥不入库。
-难度等级按词频排名映射（前 500 = A1，依次至 B2）。
+复现 / 扩充脚本见 [scripts/generate-words.mjs](./scripts/generate-words.mjs)（API Key 仅在本机
+`.env.local`，gitignored，密钥不进入仓库）。
 
 ## 快速开始
 
