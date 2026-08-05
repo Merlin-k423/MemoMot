@@ -1,28 +1,44 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import WordCard from '@/components/WordCard.vue'
 import { useSpeech } from '@/composables/useSpeech'
+import { useDailyStore } from '@/stores/daily'
 import { useLearningStore } from '@/stores/learning'
-import { useSettingsStore } from '@/stores/settings'
+import { useReviewStore } from '@/stores/review'
+import { DAILY_NEW_WORDS_OPTIONS, useSettingsStore } from '@/stores/settings'
+import type { ReviewRating } from '@/types'
 
 const router = useRouter()
 const settings = useSettingsStore()
+const daily = useDailyStore()
 const learning = useLearningStore()
+const review = useReviewStore()
 const { speak } = useSpeech()
 
-const cur = computed(() => learning.current)
 const showMeaning = ref(false)
-const progress = computed(() =>
+const showDailyPicker = ref(false)
+
+const reviewCur = computed(() => review.currentWord)
+const learnCur = computed(() => learning.current)
+const learnProgress = computed(() =>
   learning.queue.length > 0 ? Math.round((learning.done / learning.queue.length) * 100) : 0,
 )
 
-async function start() {
-  await learning.start()
-  showMeaning.value = false
-}
+const ratings: { key: ReviewRating; label: string }[] = [
+  { key: 'again', label: '忘记' },
+  { key: 'hard', label: '模糊' },
+  { key: 'good', label: '记得' },
+  { key: 'easy', label: '轻松' },
+]
 
 function reveal() {
   showMeaning.value = !showMeaning.value
+}
+
+async function rate(key: ReviewRating) {
+  await review.rate(key)
+  showMeaning.value = false
 }
 
 async function markLearned() {
@@ -30,34 +46,76 @@ async function markLearned() {
   showMeaning.value = false
 }
 
-watch(cur, (word) => {
+async function nextBatch() {
+  showMeaning.value = false
+  await daily.startLearn()
+}
+
+function speakWord() {
+  if (learnCur.value) speak(learnCur.value.word)
+}
+
+function onSelectDaily(action: { name?: string; value?: unknown }) {
+  if (typeof action.value === 'number') void settings.setDailyNewWords(action.value)
+  showDailyPicker.value = false
+}
+
+watch(reviewCur, (word) => {
   if (word && settings.autoSpeak) speak(word.word)
 })
-function speakWord() {
-  if (cur.value) speak(cur.value.word)
-}
+watch(learnCur, (word) => {
+  if (word && settings.autoSpeak) speak(word.word)
+})
+
+onMounted(() => {
+  void daily.init()
+})
 </script>
 
 <template>
   <div class="page learn-page">
-    <h2>今日学习</h2>
-    <p class="hint">每日新词 {{ settings.dailyNewWords }} 个 · 已学 {{ learning.done }}</p>
+    <div class="header">
+      <h2>今日任务</h2>
+      <van-button size="small" plain icon="setting-o" @click="showDailyPicker = true">
+        每日新词 {{ settings.dailyNewWords }}
+      </van-button>
+    </div>
 
-    <van-empty v-if="!learning.inSession && !learning.finished" description="今天还没开始学习">
-      <van-button type="primary" @click="start">开始学习</van-button>
-    </van-empty>
+    <p v-if="daily.stage === 'review'" class="hint">
+      复习 {{ daily.reviewDone + 1 }}/{{ daily.reviewTotal }} · 复习完自动进入新词
+    </p>
+    <p v-else-if="daily.stage === 'learn'" class="hint">
+      新词 {{ learning.done }}/{{ learning.queue.length }}
+    </p>
 
-    <template v-else-if="learning.inSession">
-      <van-progress :percentage="progress" stroke-width="6" class="progress" />
-      <div v-if="cur" class="card" @click="reveal">
-        <div class="word">{{ cur.word }}</div>
-        <div class="phonetic">{{ cur.phonetic }}</div>
-        <div v-if="showMeaning" class="meaning">
-          <div>{{ cur.pos }} {{ cur.meaning }}</div>
-          <p class="example">{{ cur.example }}</p>
-          <p class="example-zh">{{ cur.exampleZh }}</p>
-        </div>
+    <van-loading v-if="daily.stage === 'idle'" class="loading" />
+
+    <template v-else-if="daily.stage === 'review'">
+      <WordCard v-if="reviewCur" :word="reviewCur" :show-meaning="showMeaning" @click="reveal" />
+      <div v-else class="card-missing">
+        <div class="word">词条数据缺失</div>
+        <p class="hint">该词条可能已被删除，跳过即可</p>
+        <van-button size="small" plain type="primary" @click="review.skip()">跳过</van-button>
       </div>
+      <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义后评分' }}</p>
+      <div class="ratings">
+        <van-button
+          v-for="r in ratings"
+          :key="r.key"
+          size="small"
+          :type="r.key === 'again' ? 'danger' : 'primary'"
+          :plain="r.key !== 'good' && r.key !== 'easy'"
+          :disabled="!showMeaning"
+          @click="rate(r.key)"
+        >
+          {{ r.label }}
+        </van-button>
+      </div>
+    </template>
+
+    <template v-else-if="daily.stage === 'learn'">
+      <van-progress :percentage="learnProgress" stroke-width="6" class="progress" />
+      <WordCard v-if="learnCur" :word="learnCur" :show-meaning="showMeaning" @click="reveal" />
       <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义' }}</p>
       <div class="actions">
         <van-button plain block @click="speakWord">再听一遍</van-button>
@@ -67,52 +125,37 @@ function speakWord() {
       </div>
     </template>
 
-    <van-empty v-else :description="learning.remaining > 0 ? '本组新词已学完' : '词库已全部学完'">
+    <van-empty v-else :description="learning.remaining > 0 ? '今日任务完成' : '词库已全部学完'">
       <div class="finish-actions">
-        <van-button v-if="learning.remaining > 0" type="primary" @click="start">
+        <van-button v-if="learning.remaining > 0" type="primary" @click="nextBatch">
           再记 {{ settings.dailyNewWords }} 个新词
         </van-button>
-        <van-button :plain="learning.remaining > 0" type="primary" @click="router.push('/review')">
-          去复习
+        <van-button :plain="learning.remaining > 0" type="primary" @click="router.push('/stats')">
+          查看统计
         </van-button>
       </div>
     </van-empty>
+
+    <van-action-sheet
+      v-model:show="showDailyPicker"
+      :actions="DAILY_NEW_WORDS_OPTIONS.map((n) => ({ name: `${n} 个`, value: n }))"
+      cancel-text="取消"
+      @select="onSelectDaily"
+    />
   </div>
 </template>
 
 <style scoped>
-.card {
-  margin-top: 16px;
-  padding: 36px 20px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  text-align: center;
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.loading {
+  margin-top: 40px;
 }
 .progress {
   margin-top: 12px;
-}
-.word {
-  font-size: 34px;
-  font-weight: 700;
-}
-.phonetic {
-  margin-top: 4px;
-  color: #969799;
-}
-.meaning {
-  margin-top: 16px;
-  font-size: 16px;
-}
-.example {
-  margin-top: 8px;
-  color: #646566;
-  font-size: 14px;
-  font-style: italic;
-}
-.example-zh {
-  color: #969799;
-  font-size: 13px;
 }
 .actions {
   display: flex;
@@ -123,6 +166,29 @@ function speakWord() {
 .tip {
   margin-top: 12px;
   text-align: center;
+}
+.ratings {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+}
+.ratings .van-button {
+  padding: 0 4px;
+}
+.card-missing {
+  margin-top: 16px;
+  min-height: 220px;
+  padding: 36px 20px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 .finish-actions {
   display: flex;

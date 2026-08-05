@@ -9,6 +9,7 @@ import { db } from './db'
 import { wordRepo } from './db/words'
 import { sampleWords } from './data/words'
 import router from './router'
+import { useSettingsStore } from './stores/settings'
 import './styles/main.css'
 
 registerSW({ immediate: true })
@@ -18,10 +19,14 @@ async function bootstrap() {
   await wordRepo.seedIfEmpty(sampleWords)
 
   const app = createApp(App)
+  const pinia = createPinia()
 
-  app.use(createPinia())
+  app.use(pinia)
   app.use(router)
   app.use(Vant)
+
+  const settings = useSettingsStore(pinia)
+  await settings.load()
 
   app.mount('#app')
 }
