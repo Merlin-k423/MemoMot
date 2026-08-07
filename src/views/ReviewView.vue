@@ -1,118 +1,105 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import WordCard from '@/components/WordCard.vue'
-import { useSpeech } from '@/composables/useSpeech'
+import { onMounted, ref } from 'vue'
+import VirtualList from '@/components/VirtualList.vue'
+import WordDetailDrawer from '@/components/WordDetailDrawer.vue'
+import type { ReviewItem } from '@/stores/review'
 import { useReviewStore } from '@/stores/review'
-import type { ReviewRating } from '@/types'
+import type { Word } from '@/types'
+import { describeReviewStatus } from '@/utils/reviewStatus'
 
-const router = useRouter()
 const review = useReviewStore()
-const { speak } = useSpeech()
 const loading = ref(true)
-const showMeaning = ref(false)
-const cur = computed(() => review.currentWord)
-
-const ratings: { key: ReviewRating; label: string }[] = [
-  { key: 'again', label: '忘记' },
-  { key: 'hard', label: '模糊' },
-  { key: 'good', label: '记得' },
-  { key: 'easy', label: '轻松' },
-]
+const showDetail = ref(false)
+const selectedWord = ref<Word | null>(null)
 
 async function init() {
   loading.value = true
   try {
-    await review.load()
+    await review.loadAll()
   } finally {
     loading.value = false
   }
 }
 
-function reveal() {
-  showMeaning.value = !showMeaning.value
+function openDetail(word: Word) {
+  selectedWord.value = word
+  showDetail.value = true
 }
 
-async function rate(key: ReviewRating) {
-  await review.rate(key)
-  showMeaning.value = false
+function isDue(card: ReviewItem['card']): boolean {
+  return card.dueDate <= Date.now()
 }
 
-watch(cur, (word) => {
-  if (word) speak(word.word)
-})
+function statusText(card: ReviewItem['card']): string {
+  const info = describeReviewStatus(card)
+  return info.nextDate ? `下次 ${info.nextDate}` : info.status
+}
 
 onMounted(init)
 </script>
 
 <template>
   <div class="page">
-    <h2>复习</h2>
+    <h2>复习词库（{{ review.reviewList.length }}）</h2>
+    <p class="hint">全部已学词按到期时间排序，点击查看详情</p>
+
     <van-loading v-if="loading" class="loading" />
+    <van-empty v-else-if="review.reviewList.length === 0" description="还没有已学词，去学习吧" />
 
-    <van-empty
-      v-else-if="!review.inSession"
-      :description="review.finished ? '本轮复习完成' : '今天没有到期待复习的词'"
-    >
-      <van-button v-if="review.finished" size="small" type="primary" @click="init">再查一次</van-button>
-      <van-button v-else size="small" type="primary" @click="router.push('/learn')">去学习新词</van-button>
-    </van-empty>
+    <VirtualList v-else :items="review.reviewList" :row-height="56" :height="560">
+      <template #default="{ item }">
+        <div class="review-item" @click="openDetail(item.word)">
+          <span class="fr">{{ item.word.word }}</span>
+          <span class="zh">{{ item.word.meaning }}</span>
+          <span class="tag" :class="{ due: isDue(item.card) }">{{ statusText(item.card) }}</span>
+        </div>
+      </template>
+    </VirtualList>
 
-    <template v-else>
-      <p class="hint">进度 {{ review.index + 1 }} / {{ review.total }}</p>
-      <WordCard v-if="cur" :word="cur" :show-meaning="showMeaning" @click="reveal" />
-      <div v-else class="card-missing">
-        <div class="word">词条数据缺失</div>
-        <p class="hint">该词条可能已被删除，跳过即可</p>
-        <van-button size="small" plain type="primary" @click="review.skip()">跳过</van-button>
-      </div>
-      <p class="hint tip">{{ showMeaning ? '点击卡片隐藏释义' : '点击卡片查看释义后评分' }}</p>
-      <div class="ratings">
-        <van-button
-          v-for="r in ratings"
-          :key="r.key"
-          size="small"
-          :type="r.key === 'again' ? 'danger' : 'primary'"
-          :plain="r.key !== 'good' && r.key !== 'easy'"
-          :disabled="!showMeaning"
-          @click="rate(r.key)"
-        >
-          {{ r.label }}
-        </van-button>
-      </div>
-    </template>
+    <WordDetailDrawer v-model:show="showDetail" :word="selectedWord" />
   </div>
 </template>
 
 <style scoped>
-.card-missing {
-  margin-top: 16px;
-  min-height: 220px;
-  padding: 36px 20px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
 .loading {
   margin-top: 40px;
 }
-.tip {
-  margin-top: 12px;
-  text-align: center;
-}
-.ratings {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.review-item {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 20px;
+  height: 56px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #f2f3f5;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
-.ratings .van-button {
-  padding: 0 4px;
+.review-item:active {
+  background: #f7f8fa;
+}
+.fr {
+  font-weight: 600;
+}
+.zh {
+  flex: 1;
+  overflow: hidden;
+  color: #646566;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f2f3f5;
+  color: #969799;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tag.due {
+  background: #fef0f0;
+  color: #ee0a24;
 }
 </style>
