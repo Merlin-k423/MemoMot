@@ -12,7 +12,7 @@ import { testWords } from './fixtures'
 async function resetDb() {
   await db.open()
   await Promise.all([db.words.clear(), db.reviewCards.clear(), db.reviewLogs.clear(), db.settings.clear()])
-  await wordRepo.seedIfEmpty(testWords)
+  await wordRepo.bulkAddIfMissing(testWords)
 }
 
 function dueCard(wordId: string) {

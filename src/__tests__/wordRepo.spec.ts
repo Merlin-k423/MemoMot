@@ -37,7 +37,7 @@ describe('wordRepo', () => {
   })
 
   it('ensureFullBank 首次种入全量词，重复调用幂等', async () => {
-    await wordRepo.seedIfEmpty(testWords)
+    await wordRepo.bulkAddIfMissing(testWords)
     expect(await wordRepo.ensureFullBank(freq)).toBe(2)
     expect(await wordRepo.ensureFullBank(freq)).toBe(0)
     expect(await wordRepo.count()).toBe(testWords.length + 2)

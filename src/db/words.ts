@@ -49,12 +49,6 @@ export const wordRepo = {
     return added
   },
 
-  /** 局部更新词条字段（AI 补全用） */
-  async patch(wordId: string, fields: Partial<Word>): Promise<void> {
-    const word = await db.words.get(wordId)
-    if (word) await db.words.put({ ...word, ...fields })
-  },
-
   /** 删除词条并级联清理其复习卡与学习记录（单事务） */
   async remove(wordId: string): Promise<void> {
     await db.transaction('rw', db.words, db.reviewCards, db.reviewLogs, async () => {
@@ -64,11 +58,4 @@ export const wordRepo = {
     })
   },
 
-  /** 词库为空时写入内置词表，返回是否执行了种子写入 */
-  async seedIfEmpty(words: Word[]): Promise<boolean> {
-    const count = await db.words.count()
-    if (count > 0) return false
-    await db.words.bulkPut(words)
-    return true
-  },
 }

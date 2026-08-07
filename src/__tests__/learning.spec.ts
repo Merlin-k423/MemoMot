@@ -13,7 +13,7 @@ describe('learning store', () => {
     setActivePinia(createPinia())
     await db.open()
     await Promise.all([db.words.clear(), db.reviewCards.clear(), db.reviewLogs.clear(), db.settings.clear()])
-    await wordRepo.seedIfEmpty(testWords)
+    await wordRepo.bulkAddIfMissing(testWords)
   })
 
   it('学习新词后生成复习卡（次日到期）与学习记录', async () => {

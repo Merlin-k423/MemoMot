@@ -10,7 +10,7 @@ import { testWords } from './fixtures'
 describe('WordsView', () => {
   beforeAll(async () => {
     await db.open()
-    await wordRepo.seedIfEmpty(testWords)
+    await wordRepo.bulkAddIfMissing(testWords)
   })
 
   it('渲染示例词库', async () => {
