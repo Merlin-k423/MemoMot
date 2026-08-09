@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>MemoMot</title>
+    <script>
+      // GitHub Pages SPA fallback：未知路径重定向到应用入口（保留路由路径）
+      ;(function () {
+        var segments = location.pathname.split('/')
+        var base = segments.slice(0, segments.length - 1).join('/')
+        var meta = document.createElement('meta')
+        meta.name = 'robots'
+        meta.content = 'noindex'
+        document.head.appendChild(meta)
+        var redirect = base + '/?redirect=' + encodeURIComponent(location.pathname + location.search)
+        location.replace(redirect)
+      })()
+    </script>
+  </head>
+  <body>
+    <p>正在跳转…</p>
+  </body>
+</html>

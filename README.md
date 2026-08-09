@@ -79,8 +79,8 @@ pnpm preview     # 本地预览生产构建
 
 项目使用 **History 路由模式**，静态服务器需配置 SPA fallback（未知路径回退到 `index.html`）：
 
-- **Vercel**：见 [vercel.json](./vercel.json)（`rewrites`）
-- **Netlify / Cloudflare Pages**：见 [public/_redirects](./public/_redirects)（`/* /index.html 200`）
+- **GitHub Pages**：见 [.github/workflows/pages.yml](./.github/workflows/pages.yml)（`actions/deploy-pages` 自动构建部署）
+- **SPA 回退**：`vite.config.ts` 设置 `base` 为仓库路径，配合 [public/404.html](./public/404.html) 将未知路径重定向回应用入口
 - **PWA 离线导航**：`vite.config.ts` 中 `workbox.navigateFallback`
 
 CI（GitHub Actions）在 push 时自动执行 lint / 类型检查 / 测试 / 构建。

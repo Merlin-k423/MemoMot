@@ -5,7 +5,12 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+// GitHub Pages 部署到子路径时需要 base 指向仓库名；本地开发保持根路径
+const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? ''
+const base = repoName ? `/${repoName}/` : '/'
+
 export default defineConfig({
+  base,
   plugins: [
     vue(),
     vueDevTools(),
