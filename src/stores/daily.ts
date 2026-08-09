@@ -49,9 +49,5 @@ export const useDailyStore = defineStore('daily', () => {
     },
   )
 
-  function reset() {
-    stage.value = 'idle'
-  }
-
-  return { stage, reviewTotal, reviewDone, learnTotal, learnDone, init, startLearn, reset }
+  return { stage, reviewTotal, reviewDone, learnTotal, learnDone, init, startLearn }
 })

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { settingsRepo } from '@/db/settings'
+import { settingsRepo } from '@/db'
 
 export const DAILY_NEW_WORDS_OPTIONS = [10, 15, 30, 50] as const
 export type DailyNewWordsOption = (typeof DAILY_NEW_WORDS_OPTIONS)[number]

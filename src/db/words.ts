@@ -1,6 +1,6 @@
 import type { Word } from '@/types'
 import { db } from './index'
-import { settingsRepo } from './settings'
+import { settingsRepo } from './index'
 
 export const wordRepo = {
   async count(): Promise<number> {
@@ -43,7 +43,11 @@ export const wordRepo = {
    */
   async ensureFullBank(frequencyWords: Word[]): Promise<number> {
     const flag = await settingsRepo.get('fullBankSeeded')
-    if (flag === '1') return 0
+    if (flag === '1') {
+      // 自愈：标记存在但词库异常（数据被清/损坏）时重新种入，避免"永远空词库"
+      const count = await db.words.count()
+      if (count >= 1000) return 0
+    }
     const added = await this.bulkAddIfMissing(frequencyWords)
     await settingsRepo.set('fullBankSeeded', '1')
     return added

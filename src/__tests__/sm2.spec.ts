@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { DAY_MS, startOfDay } from '@/utils/date'
-import { createCard, isDue, scheduleCard } from '@/utils/sm2'
+import { createCard, scheduleCard } from '@/utils/sm2'
 
 const NOW = new Date('2026-08-02T10:00:00+08:00').getTime()
 
 describe('createCard', () => {
-  it('初始化为默认参数并当天到期', () => {
+  it('初始化为默认参数', () => {
     const card = createCard('w1', NOW)
     expect(card).toMatchObject({ wordId: 'w1', ease: 2.5, interval: 0, reps: 0, lapses: 0 })
-    expect(isDue(card, NOW)).toBe(true)
   })
 })
 

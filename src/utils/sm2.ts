@@ -24,10 +24,6 @@ export function createCard(wordId: string, now = Date.now()): ReviewCard {
   }
 }
 
-export function isDue(card: ReviewCard, now = Date.now()): boolean {
-  return card.dueDate <= now
-}
-
 export function updateEase(ease: number, q: number): number {
   return Math.max(EASE_FLOOR, ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
 }

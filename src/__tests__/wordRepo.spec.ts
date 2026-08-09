@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/db'
+import { settingsRepo } from '@/db'
 import { wordRepo } from '@/db/words'
 import type { Word } from '@/types'
 import { testWords } from './fixtures'
@@ -41,6 +42,13 @@ describe('wordRepo', () => {
     expect(await wordRepo.ensureFullBank(freq)).toBe(2)
     expect(await wordRepo.ensureFullBank(freq)).toBe(0)
     expect(await wordRepo.count()).toBe(testWords.length + 2)
+  })
+
+  it('标记存在但词库为空时自愈重种', async () => {
+    await settingsRepo.set('fullBankSeeded', '1')
+    const added = await wordRepo.ensureFullBank(freq)
+    expect(added).toBe(2)
+    expect(await wordRepo.count()).toBe(2)
   })
 
   it('bulkAddIfMissing 按 word 去重', async () => {
